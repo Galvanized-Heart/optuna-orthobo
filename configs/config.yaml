@@ -8,6 +8,6 @@ debug: false
 seed: 0
 
 experiment:
-  n_trials: 1
+  n_trials: 3
   n_startup_trials: 0
   mc_budget: 64

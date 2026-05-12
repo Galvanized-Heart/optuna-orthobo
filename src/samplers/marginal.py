@@ -20,9 +20,8 @@ class MarginalBoTorchSampler(BaseSampler):
         use_orthobo: bool = True,
         sampler_name: str = "MarginalBO",
     ):
-        super().__init__(n_startup_trials=n_startup_trials, mc_budget=mc_budget)
+        super().__init__(n_startup_trials=n_startup_trials, mc_budget=mc_budget, sampler_name=sampler_name)
         self.use_orthobo = use_orthobo
-        self.sampler_name = sampler_name
 
     def get_candidates(self, train_x, train_obj, train_con, bounds, pending_x):
         # Fit base GP

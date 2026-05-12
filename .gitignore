@@ -150,8 +150,9 @@ configs/local/default.yaml
 /logs/
 .env
 *.txt
+multirun/
 outputs/
-results/
+figures/
 
 # Aim logging
 .aim
