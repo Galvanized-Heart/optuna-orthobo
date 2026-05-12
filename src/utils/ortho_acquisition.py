@@ -4,10 +4,11 @@ from botorch.acquisition.analytic import LogExpectedImprovement
 from botorch.acquisition.acquisition import AcquisitionFunction
 
 class OrthogonalLogEi(AcquisitionFunction):
-    def __init__(self, model, best_f, hyperposterior, theta_samples, theta_models, eps: float = 1e-12, cov_jitter: float = 1e-6):
+    def __init__(self, model, best_f, hyperposterior, theta_samples, theta_models, eps: float = 1e-12, cov_jitter: float = 1e-6, use_orthogonal_correction: bool = True):
         super().__init__(model=model)
         self.eps = eps
         self.cov_jitter = cov_jitter
+        self.use_orthogonal_correction = use_orthogonal_correction
         self.g_cache = hyperposterior.score(theta_samples)
         self.g_centered_cache = self.g_cache - self.g_cache.mean(dim=0, keepdim=True)
         self.g_cov_cache = torch.cov(self.g_cache.T)
@@ -17,6 +18,9 @@ class OrthogonalLogEi(AcquisitionFunction):
         # Evaluate standard EI for all S models
         vals2 = [torch.exp(fn(X)) for fn in self.theta_acqfns]
         h = torch.stack(vals2, dim=0) # [S, batch]
+
+        if not self.use_orthogonal_correction:
+            return torch.log(torch.clamp_min(h.mean(dim=0), self.eps))
 
         g = self.g_cache
         g_centered = self.g_centered_cache
