@@ -1,6 +1,7 @@
-import torch
 from botorch.optim import optimize_acqf
 from botorch.models import SingleTaskGP
+from botorch.models.transforms.input import Normalize
+from botorch.models.transforms.outcome import Standardize
 from botorch.fit import fit_gpytorch_mll
 from gpytorch.mlls import ExactMarginalLogLikelihood
 
@@ -13,6 +14,18 @@ from src.utils import (
 
 
 class MarginalBoTorchSampler(BaseSampler):
+    """
+    Unified Marginal BO sampler.
+
+    When use_orthobo=True (default), applies the orthogonal control variate
+    correction from the OrthoBO paper, yielding variance-reduced acquisition
+    estimates. When use_orthobo=False, falls back to naive MC marginalisation.
+
+    Input normalization and output standardization are handled internally by
+    BoTorch's Normalize and Standardize transforms — optimize_acqf operates
+    in the original parameter space throughout.
+    """
+
     def __init__(
         self,
         n_startup_trials: int = 10,
@@ -20,12 +33,23 @@ class MarginalBoTorchSampler(BaseSampler):
         use_orthobo: bool = True,
         sampler_name: str = "MarginalBO",
     ):
-        super().__init__(n_startup_trials=n_startup_trials, mc_budget=mc_budget, sampler_name=sampler_name)
+        super().__init__(
+            n_startup_trials=n_startup_trials,
+            mc_budget=mc_budget,
+            sampler_name=sampler_name,
+        )
         self.use_orthobo = use_orthobo
 
     def get_candidates(self, train_x, train_obj, train_con, bounds, pending_x):
-        # Fit base GP
-        model = SingleTaskGP(train_x, train_obj)
+        dim = train_x.shape[-1]
+
+        # BoTorch transforms handle normalization internally
+        model = SingleTaskGP(
+            train_x,
+            train_obj,
+            input_transform=Normalize(d=dim, bounds=bounds),
+            outcome_transform=Standardize(m=1),
+        )
         mll = ExactMarginalLogLikelihood(model.likelihood, model)
         fit_gpytorch_mll(mll)
 
@@ -45,7 +69,7 @@ class MarginalBoTorchSampler(BaseSampler):
             train_x=train_x,
         )
 
-        # Orthogonal (or naive) acquisition function
+        # Orthogonal (or naive) acquisition
         acqf = OrthogonalLogEi(
             model=model,
             best_f=train_obj.max(),
