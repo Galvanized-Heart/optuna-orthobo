@@ -53,7 +53,7 @@ def plot_regret(cfg: DictConfig, regrets: list[float]):
     figures_dir = Path(cfg.paths.figures)
     figures_dir.mkdir(parents=True, exist_ok=True)
 
-    sampler_name = cfg.sampler._target_.split(".")[-1]
+    sampler_name = cfg.sampler.sampler_name
     filename = f"{cfg.benchmark.name}_{sampler_name}.png"
     output_path = figures_dir / filename
 

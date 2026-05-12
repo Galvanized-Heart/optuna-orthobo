@@ -1,7 +1,7 @@
 import optuna
 from optuna_integration import BoTorchSampler
 
-class OrthoBaseSampler(BoTorchSampler):
+class BaseSampler(BoTorchSampler):
     """Base class to standardize our custom sampling logic."""
     def __init__(self, n_startup_trials: int = 10, mc_budget: int = 64):
         # Pass custom candidates_func to parent class
