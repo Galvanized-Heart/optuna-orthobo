@@ -6,14 +6,10 @@ import numpy as np
 import torch
 import matplotlib.pyplot as plt
 
-
-#from dotenv import load_dotenv
 from pathlib import Path
 from omegaconf import DictConfig, OmegaConf
 from hydra.core.hydra_config import HydraConfig
 from time import perf_counter
-
-#load_dotenv()
 
 # Force CPU to avoid driver warnings
 torch.set_default_device("cpu")
