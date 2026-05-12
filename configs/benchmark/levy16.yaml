@@ -1,0 +1,5 @@
+name: "Levy16"
+global_min: 0.0
+function:
+  _target_: botorch.test_functions.Levy
+  dim: 16

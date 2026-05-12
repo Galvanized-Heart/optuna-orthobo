@@ -14,12 +14,25 @@ load_dotenv()
 torch.set_default_device("cpu")
 
 
-def make_objective(dim: int, test_func):
+def make_objective(test_func):
+    """
+    Dynamically builds the objective using the test function's specific bounds.
+    test_func.bounds is a PyTorch tensor of shape (2, dim).
+    Row 0 is lower bounds, Row 1 is upper bounds.
+    """
+    bounds = test_func.bounds
+    dim = bounds.shape[1]
+
     def objective(trial):
         x = torch.tensor(
-            [trial.suggest_float(f"x{i}", 0.0, 1.0) for i in range(dim)]
+            [
+                trial.suggest_float(
+                    f"x{i}", 
+                    bounds[0, i].item(), 
+                    bounds[1, i].item()
+                ) for i in range(dim)
+            ]
         )
-
         return test_func(x.unsqueeze(0)).item()
 
     return objective
@@ -40,7 +53,9 @@ def plot_regret(cfg: DictConfig, regrets: list[float]):
     figures_dir = Path(cfg.paths.figures)
     figures_dir.mkdir(parents=True, exist_ok=True)
 
-    output_path = figures_dir / "phase_1_baseline.png"
+    sampler_name = cfg.sampler._target_.split(".")[-1]
+    filename = f"{cfg.benchmark.name}_{sampler_name}.png"
+    output_path = figures_dir / filename
 
     plt.figure(figsize=(8, 5))
 
@@ -83,7 +98,9 @@ def main(cfg: DictConfig):
 
     sampler = hydra.utils.instantiate(cfg.sampler)
 
-    test_func = Hartmann(dim=cfg.benchmark.dim)
+    test_func = hydra.utils.instantiate(cfg.benchmark.function)
+
+    print(f"Running {cfg.benchmark.name} (dim={test_func.bounds.shape[1]})")
 
     study = optuna.create_study(
         direction="minimize",
@@ -91,7 +108,7 @@ def main(cfg: DictConfig):
     )
 
     study.optimize(
-        make_objective(cfg.benchmark.dim, test_func),
+        make_objective(test_func),
         n_trials=cfg.experiment.n_trials,
     )
 
