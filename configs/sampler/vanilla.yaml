@@ -1,0 +1,3 @@
+_target_: src.samplers.vanilla.VanillaBoTorchSampler
+n_startup_trials: ${experiment.n_startup_trials}
+mc_budget: ${experiment.mc_budget}

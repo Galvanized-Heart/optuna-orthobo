@@ -1,0 +1,5 @@
+name: "Hartmann6"
+global_min: -3.32237
+function:
+  _target_: botorch.test_functions.Hartmann
+  dim: 6

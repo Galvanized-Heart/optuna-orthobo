@@ -1,0 +1,12 @@
+defaults:
+  - sampler: vanilla
+  - benchmark: hartmann6
+  - paths: default
+  - _self_
+
+debug: false
+
+experiment:
+  n_trials: 10
+  n_startup_trials: 3
+  mc_budget: 64
