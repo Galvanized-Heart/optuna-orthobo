@@ -75,7 +75,7 @@ def plot_regret(cfg: DictConfig, regrets: list[float]):
     plt.yscale("log")
     plt.xlabel("Iteration")
     plt.ylabel("Best-so-far Regret")
-    plt.title(f"{cfg.benchmark.name} Benchmark")
+    plt.title(f"{cfg.benchmark.name} Benchmark - {sampler_name}")
     plt.legend()
     plt.grid(True, alpha=0.3)
 
