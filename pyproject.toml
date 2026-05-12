@@ -1,0 +1,13 @@
+[project]
+name = "optuna-orthobo"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "botorch>=0.17.2",
+    "matplotlib>=3.10.9",
+    "optuna>=4.8.0",
+    "optuna-integration>=4.8.0",
+    "torch>=2.11.0",
+]
