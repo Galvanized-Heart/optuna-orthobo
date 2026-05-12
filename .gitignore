@@ -151,7 +151,7 @@ configs/local/default.yaml
 .env
 *.txt
 outputs/
-figures/
+results/
 
 # Aim logging
 .aim

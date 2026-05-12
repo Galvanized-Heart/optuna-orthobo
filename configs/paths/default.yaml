@@ -1,2 +1,1 @@
 root: ${oc.env:PROJECT_ROOT}
-figures: ${paths.root}/figures

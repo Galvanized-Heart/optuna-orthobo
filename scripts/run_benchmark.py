@@ -1,17 +1,30 @@
 import hydra
+import json
 import optuna
+import random
+import numpy as np
 import torch
 import matplotlib.pyplot as plt
 
-from dotenv import load_dotenv
+
+#from dotenv import load_dotenv
 from pathlib import Path
 from omegaconf import DictConfig, OmegaConf
-from botorch.test_functions import Hartmann
+from hydra.core.hydra_config import HydraConfig
+from time import perf_counter
 
-load_dotenv()
+#load_dotenv()
 
 # Force CPU to avoid driver warnings
 torch.set_default_device("cpu")
+
+
+def seed_everything(seed: int):
+    """Seed all relevant RNGs for reproducibility."""
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    optuna.samplers.RandomSampler(seed=seed)  # warms up optuna's internal state
 
 
 def make_objective(test_func):
@@ -49,8 +62,33 @@ def compute_best_so_far(study, global_min):
     return best_so_far
 
 
+def save_results(cfg: DictConfig, regrets: list[float], trial_times: list[float]):
+    """Save regrets, per-trial times, and full config to a JSON file in the
+    Hydra output directory so aggregate_and_plot.py can find them later."""
+    sampler_name = cfg.sampler.sampler_name
+    seed = cfg.get("seed", 0)
+ 
+    results = {
+        "sampler_name": sampler_name,
+        "benchmark_name": cfg.benchmark.name,
+        "seed": seed,
+        "n_trials": cfg.experiment.n_trials,
+        "n_startup_trials": cfg.experiment.n_startup_trials,
+        "mc_budget": cfg.experiment.mc_budget,
+        "regrets": regrets,
+        "trial_times_seconds": trial_times,
+        "total_time_seconds": sum(trial_times),
+    }
+ 
+    run_dir = Path(HydraConfig.get().runtime.output_dir)
+    output_path = run_dir / "results.json"
+    output_path.write_text(json.dumps(results, indent=2))
+    print(f"Results saved to: {output_path.resolve()}")
+
+
 def plot_regret(cfg: DictConfig, regrets: list[float]):
-    figures_dir = Path(cfg.paths.figures)
+    run_dir = Path(HydraConfig.get().runtime.output_dir)
+    figures_dir = run_dir / "figures"
     figures_dir.mkdir(parents=True, exist_ok=True)
 
     sampler_name = cfg.sampler.sampler_name
@@ -96,31 +134,38 @@ def main(cfg: DictConfig):
         print(OmegaConf.to_yaml(cfg))
         return
 
-    sampler = hydra.utils.instantiate(cfg.sampler)
+    seed = cfg.get("seed", 0)
+    seed_everything(seed)
 
+    sampler = hydra.utils.instantiate(cfg.sampler)
     test_func = hydra.utils.instantiate(cfg.benchmark.function)
 
-    print(f"Running {cfg.benchmark.name} (dim={test_func.bounds.shape[1]})")
+    sampler_name = cfg.sampler.sampler_name
+
+    print(f"[seed={seed}] Running {cfg.benchmark.name} (dim={test_func.bounds.shape[1]}) with {sampler_name}")
 
     study = optuna.create_study(
         direction="minimize",
         sampler=sampler,
     )
 
-    study.optimize(
-        make_objective(test_func),
-        n_trials=cfg.experiment.n_trials,
-    )
+    objective = make_objective(test_func)
+    trial_times = []
 
+    def timed_objective(trial):
+        t0 = perf_counter()
+        value = objective(trial)
+        trial_times.append(perf_counter() - t0)
+        return value
+ 
+    study.optimize(timed_objective, n_trials=cfg.experiment.n_trials)
+ 
     print(f"Study complete. Best value: {study.best_value:.4f}")
-
-    regrets = compute_best_so_far(
-        study,
-        cfg.benchmark.global_min,
-    )
-
+ 
+    regrets = compute_best_so_far(study, cfg.benchmark.global_min)
+ 
+    save_results(cfg, regrets, trial_times)
     plot_regret(cfg, regrets)
-
 
 if __name__ == "__main__":
     main()
