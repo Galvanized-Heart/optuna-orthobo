@@ -6,6 +6,7 @@ import numpy as np
 import torch
 import matplotlib.pyplot as plt
 
+from datetime import datetime, timezone
 from pathlib import Path
 from omegaconf import DictConfig, OmegaConf
 from hydra.core.hydra_config import HydraConfig
@@ -68,6 +69,7 @@ def save_results(cfg: DictConfig, regrets: list[float], trial_times: list[float]
         "sampler_name": sampler_name,
         "benchmark_name": cfg.benchmark.name,
         "seed": seed,
+        "saved_at": datetime.now(timezone.utc).isoformat(),
         "n_trials": cfg.experiment.n_trials,
         "n_startup_trials": cfg.experiment.n_startup_trials,
         "mc_budget": cfg.experiment.mc_budget,
@@ -83,40 +85,44 @@ def save_results(cfg: DictConfig, regrets: list[float], trial_times: list[float]
 
 
 def plot_regret(cfg: DictConfig, regrets: list[float]):
-    run_dir = Path(HydraConfig.get().runtime.output_dir)
-    figures_dir = run_dir / "figures"
-    figures_dir.mkdir(parents=True, exist_ok=True)
+    try:
+        run_dir = Path(HydraConfig.get().runtime.output_dir)
+        figures_dir = run_dir / "figures"
+        figures_dir.mkdir(parents=True, exist_ok=True)
 
-    sampler_name = cfg.sampler.sampler_name
-    filename = f"{cfg.benchmark.name}_{sampler_name}.png"
-    output_path = figures_dir / filename
+        sampler_name = cfg.sampler.sampler_name
+        filename = f"{cfg.benchmark.name}_{sampler_name}.png"
+        output_path = figures_dir / filename
 
-    plt.figure(figsize=(8, 5))
+        plt.figure(figsize=(8, 5))
 
-    plt.plot(
-        regrets,
-        label=cfg.sampler._target_.split(".")[-1],
-        linewidth=2,
-    )
+        plt.plot(
+            regrets,
+            label=cfg.sampler._target_.split(".")[-1],
+            linewidth=2,
+        )
 
-    plt.axvline(
-        x=cfg.experiment.n_startup_trials,
-        color="gray",
-        linestyle="--",
-        label="End of Random Startup",
-    )
+        plt.axvline(
+            x=cfg.experiment.n_startup_trials,
+            color="gray",
+            linestyle="--",
+            label="End of Random Startup",
+        )
 
-    plt.yscale("log")
-    plt.xlabel("Iteration")
-    plt.ylabel("Best-so-far Regret")
-    plt.title(f"{cfg.benchmark.name} Benchmark - {sampler_name}")
-    plt.legend()
-    plt.grid(True, alpha=0.3)
+        plt.yscale("log")
+        plt.xlabel("Iteration")
+        plt.ylabel("Best-so-far Regret")
+        plt.title(f"{cfg.benchmark.name} Benchmark - {sampler_name}")
+        plt.legend()
+        plt.grid(True, alpha=0.3)
 
-    plt.savefig(output_path, bbox_inches="tight")
-    plt.close()
+        plt.savefig(output_path, bbox_inches="tight")
+        plt.close()
 
-    print(f"Plot saved to: {output_path.resolve()}")
+        print(f"Plot saved to: {output_path.resolve()}")
+        
+    except Exception as e:
+        print(f"[WARNING] Could not save per-run plot: {e}")
 
 
 @hydra.main(
