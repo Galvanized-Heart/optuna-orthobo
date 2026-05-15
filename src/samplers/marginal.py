@@ -87,4 +87,4 @@ class MarginalBoTorchSampler(BaseSampler):
             raw_samples=20,
         )
 
-        return candidate
+        return candidate.clamp(bounds[0], bounds[1])

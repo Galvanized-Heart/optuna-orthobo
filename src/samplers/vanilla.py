@@ -32,4 +32,4 @@ class VanillaBoTorchSampler(BaseSampler):
             acqf, bounds=bounds, q=1, num_restarts=5, raw_samples=20
         )
 
-        return candidate
+        return candidate.clamp(bounds[0], bounds[1])
