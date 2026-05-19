@@ -43,6 +43,7 @@ def make_objective(test_func):
                 ) for i in range(dim)
             ]
         )
+        x = x.clamp(bounds[0], bounds[1])
         return test_func(x.unsqueeze(0)).item()
 
     return objective
